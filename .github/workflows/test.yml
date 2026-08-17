@@ -31,25 +31,64 @@ permissions:
   contents: read
 
 jobs:
+  # Is the formula pointing at a real release yet?
+  #
+  # A tap ships before its first bump, and until one runs, every URL names a
+  # release that may not exist and every digest is the all-zero placeholder.
+  # Downloading is meaningless in that state, so the jobs that download are
+  # skipped rather than failed — a repository that is red from its first commit
+  # for an expected, self-resolving reason teaches everyone to ignore its CI.
+  #
+  # The signal is the placeholder itself, not a date or a branch: `bump.sh`
+  # asserts no zero digest survives a bump, so a seeded formula cannot match
+  # this and a half-patched one cannot pass as seeded.
+  seeded:
+    name: is the formula seeded
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      seeded: ${{ steps.check.outputs.seeded }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: look for placeholder digests
+        id: check
+        run: |
+          set -euo pipefail
+          if grep -q 'sha256 "0\{64\}"' Formula/navigator.rb; then
+              echo "seeded=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::the formula still carries placeholder digests — install jobs are skipped until the first bump seeds it"
+          else
+              echo "seeded=true" >> "$GITHUB_OUTPUT"
+              echo "formula is seeded; running the full suite"
+          fi
+
   style:
     name: audit the formula
+    needs: seeded
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: brew style and audit
+      # Pure Ruby style. It reads the formula and fetches nothing, so it is the
+      # one real signal available before the first bump and runs unconditionally.
+      - name: brew style
         run: |
           set -euo pipefail
           brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
           brew style neon-law-foundation/navigator
-          # `--online` checks the homepage and the URLs resolve. NOT `--strict`:
-          # that enforces homebrew-core submission rules, several of which a tap
-          # is entitled to ignore, and a gate that fails for reasons you intend
-          # to keep is a gate people learn to skip.
-          brew audit --online --formula neon-law-foundation/navigator/navigator
+      # `--online` checks the homepage and that every URL resolves, so it can
+      # only run once those URLs name a real release. NOT `--strict`: that
+      # enforces homebrew-core submission rules, several of which a tap is
+      # entitled to ignore, and a gate that fails for reasons you intend to keep
+      # is a gate people learn to skip.
+      - name: brew audit
+        if: needs.seeded.outputs.seeded == 'true'
+        run: brew audit --online --formula neon-law-foundation/navigator/navigator
 
   prebuilt:
     name: install on ${{ matrix.label }}
+    needs: seeded
+    if: needs.seeded.outputs.seeded == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -77,7 +116,10 @@ jobs:
     # Weekly and on demand only — see the header. A pull request that changes
     # the source-building half of the formula should be checked by dispatching
     # this workflow against the branch.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: seeded
+    if: |
+      needs.seeded.outputs.seeded == 'true'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
