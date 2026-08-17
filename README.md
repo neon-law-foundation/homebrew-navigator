@@ -67,5 +67,3 @@ recipient the licence, and whoever runs `brew install` holds the binary rather t
 
 The NEON LAW marks are reserved. Outside contributions are currently closed; reach the maintainers at
 <contact@neonlaw.org>.
-
-Outside contributions are currently closed. Reach the maintainers at <contact@neonlaw.org>.
