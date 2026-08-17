@@ -1,0 +1,111 @@
+name: bump
+
+# Point the formula at a new Navigator release.
+#
+# TWO TRIGGERS, ONE PATH. `repository_dispatch` is the automatic one:
+# `neon-law-foundation/navigator`'s `deploy.yml` fires it after the CLI
+# archives are attached to the GitHub Release, so a `brew upgrade` reaches the
+# new version minutes after the tag lands with nobody in the loop.
+# `workflow_dispatch` is the repair handle — re-run any tag by hand when a bump
+# went wrong, without re-cutting a release in the other repository. A `YY.M.D`
+# tag admits one release per UTC day, so there is no second chance over there.
+#
+# THE DIGESTS ARE COMPUTED HERE, FROM THE PUBLISHED BYTES. The dispatch carries
+# a tag and nothing else — no digests, no URLs. That is deliberate: a payload
+# carrying digests would let a malformed or spoofed dispatch pin this formula to
+# bytes nobody verified, and it would also mean this workflow could not repair
+# itself from a bare tag. `scripts/bump.sh` downloads exactly what it will tell
+# users to download.
+on:
+  repository_dispatch:
+    types: [navigator-release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Navigator release tag to point the formula at (YY.M.D)"
+        required: true
+        type: string
+
+# The formula is committed by this job. That is the whole grant: no packages,
+# no id-token, and nothing that reaches the Navigator repository.
+permissions:
+  contents: write
+
+concurrency:
+  # Two releases can never share a UTC day, but a dispatch racing a manual
+  # re-run can. Serialize so they cannot both push to `main`.
+  group: bump-formula
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: point the formula at a release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: resolve the release tag
+        id: release
+        env:
+          # Exactly one of these is set, decided by the trigger. Read both into
+          # the environment rather than interpolating into the script body: a
+          # `client_payload` is attacker-shaped input in the general case, and
+          # it must never reach a shell as code.
+          DISPATCH_TAG: ${{ github.event.client_payload.tag }}
+          MANUAL_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="${DISPATCH_TAG:-${MANUAL_TAG:-}}"
+          if [ -z "${tag}" ]; then
+              echo "::error::neither client_payload.tag nor inputs.tag was set"
+              exit 1
+          fi
+          # Shape-check before the value is used to compose a URL or a commit
+          # message. `bump.sh` checks this too; doing it here means a malformed
+          # dispatch fails on the line that read it.
+          if ! printf '%s' "${tag}" | grep -Eq '^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}$'; then
+              echo "::error::'${tag}' is not a YY.M.D release version"
+              exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "bumping to ${tag}"
+
+      - name: rewrite the formula
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: scripts/bump.sh "${TAG}"
+
+      - name: show the change
+        run: git --no-pager diff -- Formula/navigator.rb
+
+      # Install the rewritten formula BEFORE committing it. This runner is
+      # x86_64 Linux, which is one of the two prebuilt paths, so the check costs
+      # one archive download and proves the digest matches the bytes GitHub
+      # serves. A bad bump then fails here rather than on a reader's machine,
+      # where it surfaces as a checksum mismatch they can do nothing about.
+      #
+      # It does not prove the macOS half — `test.yml` covers that after the
+      # push, because no Linux runner can install a Mach-O.
+      - name: install and test the formula on this runner
+        run: |
+          set -euo pipefail
+          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
+          brew install --formula neon-law-foundation/navigator/navigator
+          brew test neon-law-foundation/navigator/navigator
+
+      - name: commit and push
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Formula/navigator.rb; then
+              echo "formula already points at ${TAG} — nothing to commit"
+              exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/navigator.rb
+          git commit --message "navigator ${TAG}"
+          git push
+          echo "formula pushed at ${TAG}"

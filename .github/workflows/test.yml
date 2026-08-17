@@ -1,0 +1,104 @@
+name: test
+
+# Prove the formula installs a working `navigator` on the platforms it claims.
+#
+# The four platforms split into two classes, and they are tested on different
+# schedules because they cost wildly different amounts of runner time:
+#
+#   PREBUILT (arm64 macOS, x86_64 Linux) — one archive download. Tested on every
+#   push and pull request, because that is the path essentially every reader
+#   takes and it is cheap enough to gate on.
+#
+#   SOURCE (Intel macOS, arm64 Linux) — a cold compile of the whole Rust
+#   workspace, tens of minutes. Tested weekly and on demand. Gating every push
+#   on it would make a one-line formula edit an hour-long wait, and the thing it
+#   catches — a source tree that stopped building on a second architecture —
+#   does not change between two pushes to this repository.
+#
+# All four runner classes are free for public repositories, which is the only
+# reason the source lane is affordable at all.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays, 14:00 UTC. Late enough in the UTC day that the previous week's
+    # releases have all landed and been bumped.
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    name: audit the formula
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: brew style and audit
+        run: |
+          set -euo pipefail
+          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
+          brew style neon-law-foundation/navigator
+          # `--online` checks the homepage and the URLs resolve. NOT `--strict`:
+          # that enforces homebrew-core submission rules, several of which a tap
+          # is entitled to ignore, and a gate that fails for reasons you intend
+          # to keep is a gate people learn to skip.
+          brew audit --online --formula neon-law-foundation/navigator/navigator
+
+  prebuilt:
+    name: install on ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The two architectures a Navigator release actually publishes bytes
+          # for. `macos-latest` is Apple silicon; `ubuntu-latest` is x86_64.
+          - runner: macos-latest
+            label: arm64 macOS
+          - runner: ubuntu-latest
+            label: x86_64 Linux
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: install and test
+        run: |
+          set -euo pipefail
+          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
+          brew install --formula neon-law-foundation/navigator/navigator
+          brew test neon-law-foundation/navigator/navigator
+          navigator --version
+
+  source:
+    name: build from source on ${{ matrix.label }}
+    # Weekly and on demand only — see the header. A pull request that changes
+    # the source-building half of the formula should be checked by dispatching
+    # this workflow against the branch.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The two platforms with no prebuilt archive, which the formula
+          # therefore compiles. `macos-13` is the last Intel macOS image GitHub
+          # hosts; `ubuntu-24.04-arm` is the arm64 Linux one.
+          - runner: macos-13
+            label: Intel macOS
+          - runner: ubuntu-24.04-arm
+            label: arm64 Linux
+    runs-on: ${{ matrix.runner }}
+    # A cold compile of the Navigator workspace. The cap is a wedge detector,
+    # not a duration budget.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: build, install, and test
+        run: |
+          set -euo pipefail
+          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
+          brew install --formula neon-law-foundation/navigator/navigator
+          brew test neon-law-foundation/navigator/navigator
+          navigator --version
