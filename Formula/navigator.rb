@@ -23,9 +23,10 @@ class Navigator < Formula
   desc "Neon Law Navigator CLI — legal workflow, notation, and deployment tooling"
   homepage "https://github.com/neon-law-foundation/navigator"
   version "26.8.17"
-  # Dual-licensed, the Rust ecosystem default. `any_of` is the SPDX `OR` the
-  # workspace manifest declares: the recipient chooses.
-  license any_of: ["MIT", "Apache-2.0"]
+  # Navigator is AGPL-3.0-only. `-only` and not `-or-later`: the workspace
+  # manifest declares exactly that, and a formula that widened it would offer
+  # recipients a grant the Foundation did not make.
+  license "AGPL-3.0-only"
 
   on_macos do
     on_arm do
@@ -76,12 +77,13 @@ class Navigator < Formula
       system "cargo", "install", *std_cargo_args(path: "cli")
     end
 
-    # All three texts travel with the install, exactly as they travel with the
-    # archive. A recipient holds the binary and not the repository, so MIT's
-    # condition that the notice accompany every copy, and Apache-2.0 § 4(a)'s
-    # obligation to hand over the License, are met here or not at all. Both
-    # acquisition paths carry all three at their root.
-    prefix.install "LICENSE.md", "LICENSE-MIT", "LICENSE-APACHE"
+    # LICENSE travels with the install, exactly as it travels with the archive.
+    # AGPL-3.0 § 4 conditions the right to convey a copy on giving recipients
+    # the licence text, and a recipient holds the binary rather than the
+    # repository — that is the whole point of shipping one — so this is where
+    # the obligation is met or not at all. Both acquisition paths carry it at
+    # their root.
+    prefix.install "LICENSE"
   end
 
   test do

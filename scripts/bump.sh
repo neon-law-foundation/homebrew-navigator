@@ -22,9 +22,10 @@
 set -euo pipefail
 
 readonly REPO="neon-law-foundation/navigator"
-readonly FORMULA="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Formula/navigator.rb"
+FORMULA="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Formula/navigator.rb"
+readonly FORMULA
 
-if [ "$#" -ne 1 ]; then
+if [[ "$#" -ne 1 ]]; then
     echo "usage: scripts/bump.sh <YY.M.D>" >&2
     exit 2
 fi
@@ -70,7 +71,7 @@ echo "    source ${sha_source}"
 # in, so a re-run against an already-bumped formula is a no-op instead of a
 # corruption.
 old="$(sed -n 's/^[[:space:]]*version "\(.*\)"$/\1/p' "${FORMULA}")"
-if [ -z "${old}" ]; then
+if [[ -z "${old}" ]]; then
     echo "bump: ${FORMULA} has no \`version \"...\"\` line — the formula shape moved" >&2
     exit 1
 fi
@@ -108,7 +109,7 @@ awk \
 # checksum mismatch on the USER's machine, not here.
 fail() { echo "bump: $1" >&2; exit 1; }
 
-if [ "${old}" != "${TAG}" ] && grep -q "${escaped}" "${workdir}/navigator.rb"; then
+if [[ "${old}" != "${TAG}" ]] && grep -q "${escaped}" "${workdir}/navigator.rb"; then
     fail "the previous version ${old} still appears after the patch"
 fi
 
@@ -117,8 +118,8 @@ grep -q "^[[:space:]]*version \"${TAG}\"$" "${workdir}/navigator.rb" ||
 
 urls="$(grep -c '^[[:space:]]*url "' "${workdir}/navigator.rb")"
 digests="$(grep -c '^[[:space:]]*sha256 "' "${workdir}/navigator.rb")"
-[ "${urls}" -eq 4 ] || fail "expected 4 \`url\` lines, found ${urls}"
-[ "${digests}" -eq 4 ] || fail "expected 4 \`sha256\` lines, found ${digests}"
+[[ "${urls}" -eq 4 ]] || fail "expected 4 \`url\` lines, found ${urls}"
+[[ "${digests}" -eq 4 ]] || fail "expected 4 \`sha256\` lines, found ${digests}"
 
 while read -r line; do
     printf '%s' "${line}" | grep -q "${TAG}" ||

@@ -61,8 +61,11 @@ free for public repositories.
 
 ## Licence
 
-The Navigator CLI is dual-licensed `MIT OR Apache-2.0`; this tap is offered under the same terms. See
-[`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE). The NEON LAW marks are reserved — see the
-Navigator repository's `LICENSE.md`.
+Navigator is licensed `AGPL-3.0-only`, and this tap is offered under the same terms — see [`LICENSE`](LICENSE). The
+formula installs that text alongside the binary, because § 4 conditions the right to convey a copy on giving the
+recipient the licence, and whoever runs `brew install` holds the binary rather than this repository.
+
+The NEON LAW marks are reserved. Outside contributions are currently closed; reach the maintainers at
+<contact@neonlaw.org>.
 
 Outside contributions are currently closed. Reach the maintainers at <contact@neonlaw.org>.

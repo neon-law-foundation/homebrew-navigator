@@ -101,10 +101,18 @@ jobs:
           fi
       # Pure Ruby style. It reads the formula and fetches nothing, so it is the
       # one real signal available before the first bump and runs unconditionally.
+      # Scoped to the formula, NOT the whole tap. `brew style <tap>` also runs
+      # shfmt and shellcheck over every shell script in the repository against
+      # Homebrew's house profile, which is written for Homebrew's own scripts —
+      # it reformats `while ...; do` onto two lines and re-indents to two
+      # spaces. `scripts/bump.sh` is this repository's tooling rather than a
+      # Homebrew script, so enforcing that profile on it buys nothing and taxes
+      # every edit. The genuine findings it surfaced (masked return values,
+      # `[ ]` over `[[ ]]`) are fixed in the script itself.
       - name: brew style
         run: |
           set -euo pipefail
-          brew style neon-law-foundation/navigator
+          brew style Formula/navigator.rb
       # `--online` checks the homepage and that every URL resolves, so it can
       # only run once those URLs name a real release. NOT `--strict`: that
       # enforces homebrew-core submission rules, several of which a tap is
