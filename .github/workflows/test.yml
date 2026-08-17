@@ -79,12 +79,31 @@ jobs:
       # tool the whole workflow trusts, so `@master` would be an unpinned
       # dependency in the middle of the supply chain.
       - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
+      # `setup-homebrew` registers THIS repository as the tap, so there is no
+      # `brew tap` to run — issuing one against the workspace path collides with
+      # the registration it already made ("remote mismatch") and fails the job.
+      #
+      # What that leaves worth checking is which tree the qualified name now
+      # resolves to. If the tap pointed at the GitHub remote rather than this
+      # checkout, every job below would silently test `main` instead of the
+      # commit under test, and a pull request could go green on a formula it
+      # does not contain.
+      - name: confirm the tap is this checkout
+        run: |
+          set -euo pipefail
+          tap_path="$(brew --repository neon-law-foundation/navigator)"
+          echo "tap resolves to ${tap_path}"
+          resolved="$(cd "${tap_path}" && pwd -P)"
+          workspace="$(cd "${GITHUB_WORKSPACE}" && pwd -P)"
+          if [ "${resolved}" != "${workspace}" ]; then
+              echo "::error::the tap resolves to ${resolved}, not this checkout (${workspace}) — CI would be testing a different tree than the one under review"
+              exit 1
+          fi
       # Pure Ruby style. It reads the formula and fetches nothing, so it is the
       # one real signal available before the first bump and runs unconditionally.
       - name: brew style
         run: |
           set -euo pipefail
-          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
           brew style neon-law-foundation/navigator
       # `--online` checks the homepage and that every URL resolves, so it can
       # only run once those URLs name a real release. NOT `--strict`: that
@@ -123,10 +142,29 @@ jobs:
       # tool the whole workflow trusts, so `@master` would be an unpinned
       # dependency in the middle of the supply chain.
       - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
+      # `setup-homebrew` registers THIS repository as the tap, so there is no
+      # `brew tap` to run — issuing one against the workspace path collides with
+      # the registration it already made ("remote mismatch") and fails the job.
+      #
+      # What that leaves worth checking is which tree the qualified name now
+      # resolves to. If the tap pointed at the GitHub remote rather than this
+      # checkout, every job below would silently test `main` instead of the
+      # commit under test, and a pull request could go green on a formula it
+      # does not contain.
+      - name: confirm the tap is this checkout
+        run: |
+          set -euo pipefail
+          tap_path="$(brew --repository neon-law-foundation/navigator)"
+          echo "tap resolves to ${tap_path}"
+          resolved="$(cd "${tap_path}" && pwd -P)"
+          workspace="$(cd "${GITHUB_WORKSPACE}" && pwd -P)"
+          if [ "${resolved}" != "${workspace}" ]; then
+              echo "::error::the tap resolves to ${resolved}, not this checkout (${workspace}) — CI would be testing a different tree than the one under review"
+              exit 1
+          fi
       - name: install and test
         run: |
           set -euo pipefail
-          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
           brew install --formula neon-law-foundation/navigator/navigator
           brew test neon-law-foundation/navigator/navigator
           navigator --version
@@ -167,10 +205,29 @@ jobs:
       # tool the whole workflow trusts, so `@master` would be an unpinned
       # dependency in the middle of the supply chain.
       - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
+      # `setup-homebrew` registers THIS repository as the tap, so there is no
+      # `brew tap` to run — issuing one against the workspace path collides with
+      # the registration it already made ("remote mismatch") and fails the job.
+      #
+      # What that leaves worth checking is which tree the qualified name now
+      # resolves to. If the tap pointed at the GitHub remote rather than this
+      # checkout, every job below would silently test `main` instead of the
+      # commit under test, and a pull request could go green on a formula it
+      # does not contain.
+      - name: confirm the tap is this checkout
+        run: |
+          set -euo pipefail
+          tap_path="$(brew --repository neon-law-foundation/navigator)"
+          echo "tap resolves to ${tap_path}"
+          resolved="$(cd "${tap_path}" && pwd -P)"
+          workspace="$(cd "${GITHUB_WORKSPACE}" && pwd -P)"
+          if [ "${resolved}" != "${workspace}" ]; then
+              echo "::error::the tap resolves to ${resolved}, not this checkout (${workspace}) — CI would be testing a different tree than the one under review"
+              exit 1
+          fi
       - name: build, install, and test
         run: |
           set -euo pipefail
-          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
           brew install --formula neon-law-foundation/navigator/navigator
           brew test neon-law-foundation/navigator/navigator
           navigator --version

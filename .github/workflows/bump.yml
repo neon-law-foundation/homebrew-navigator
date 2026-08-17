@@ -92,10 +92,29 @@ jobs:
       # Pinned by SHA rather than `@master`: it configures the tool this job
       # trusts to verify a formula before that formula is published.
       - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
+      # `setup-homebrew` registers THIS repository as the tap, so there is no
+      # `brew tap` to run — issuing one against the workspace path collides with
+      # the registration it already made ("remote mismatch") and fails the job.
+      #
+      # What that leaves worth checking is which tree the qualified name now
+      # resolves to. If the tap pointed at the GitHub remote rather than this
+      # checkout, every job below would silently test `main` instead of the
+      # commit under test, and a pull request could go green on a formula it
+      # does not contain.
+      - name: confirm the tap is this checkout
+        run: |
+          set -euo pipefail
+          tap_path="$(brew --repository neon-law-foundation/navigator)"
+          echo "tap resolves to ${tap_path}"
+          resolved="$(cd "${tap_path}" && pwd -P)"
+          workspace="$(cd "${GITHUB_WORKSPACE}" && pwd -P)"
+          if [ "${resolved}" != "${workspace}" ]; then
+              echo "::error::the tap resolves to ${resolved}, not this checkout (${workspace}) — CI would be testing a different tree than the one under review"
+              exit 1
+          fi
       - name: install and test the formula on this runner
         run: |
           set -euo pipefail
-          brew tap neon-law-foundation/navigator "${GITHUB_WORKSPACE}"
           brew install --formula neon-law-foundation/navigator/navigator
           brew test neon-law-foundation/navigator/navigator
 
