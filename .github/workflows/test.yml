@@ -69,6 +69,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+      # Homebrew is NOT preinstalled on the Ubuntu 24.04 runner image, which is
+      # what `ubuntu-latest` now resolves to — the Linux jobs here died with a
+      # bare `brew: command not found` (exit 127) until this step existed. It is
+      # a no-op on the macOS runners, which do ship brew, so every job takes it
+      # rather than making the reader work out which ones need it.
+      #
+      # Pinned by SHA: this action runs with the job's token and configures the
+      # tool the whole workflow trusts, so `@master` would be an unpinned
+      # dependency in the middle of the supply chain.
+      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
       # Pure Ruby style. It reads the formula and fetches nothing, so it is the
       # one real signal available before the first bump and runs unconditionally.
       - name: brew style
@@ -103,6 +113,16 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+      # Homebrew is NOT preinstalled on the Ubuntu 24.04 runner image, which is
+      # what `ubuntu-latest` now resolves to — the Linux jobs here died with a
+      # bare `brew: command not found` (exit 127) until this step existed. It is
+      # a no-op on the macOS runners, which do ship brew, so every job takes it
+      # rather than making the reader work out which ones need it.
+      #
+      # Pinned by SHA: this action runs with the job's token and configures the
+      # tool the whole workflow trusts, so `@master` would be an unpinned
+      # dependency in the middle of the supply chain.
+      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
       - name: install and test
         run: |
           set -euo pipefail
@@ -137,6 +157,16 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
+      # Homebrew is NOT preinstalled on the Ubuntu 24.04 runner image, which is
+      # what `ubuntu-latest` now resolves to — the Linux jobs here died with a
+      # bare `brew: command not found` (exit 127) until this step existed. It is
+      # a no-op on the macOS runners, which do ship brew, so every job takes it
+      # rather than making the reader work out which ones need it.
+      #
+      # Pinned by SHA: this action runs with the job's token and configures the
+      # tool the whole workflow trusts, so `@master` would be an unpinned
+      # dependency in the middle of the supply chain.
+      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
       - name: build, install, and test
         run: |
           set -euo pipefail

@@ -87,6 +87,11 @@ jobs:
       #
       # It does not prove the macOS half — `test.yml` covers that after the
       # push, because no Linux runner can install a Mach-O.
+      # Homebrew is NOT preinstalled on the Ubuntu 24.04 image `ubuntu-latest`
+      # now resolves to, so `brew` below is `command not found` without this.
+      # Pinned by SHA rather than `@master`: it configures the tool this job
+      # trusts to verify a formula before that formula is published.
+      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
       - name: install and test the formula on this runner
         run: |
           set -euo pipefail
