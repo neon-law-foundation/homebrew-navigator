@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Navigator release tag to point the formula at (YY.M.D)"
+        description: "Navigator release tag to point the formula at (YY.M.D or YY.M.D-hotfix.N)"
         required: true
         type: string
 
@@ -45,6 +45,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # BEFORE `scripts/bump.sh`, not after it. Homebrew is NOT preinstalled on
+      # the Ubuntu 24.04 image `ubuntu-latest` now resolves to, and the bump asks
+      # `brew` itself whether the new tag sorts above the outgoing one — that is
+      # the comparison deciding whether `version_scheme` has to move, and the
+      # only honest way to answer it is to ask the program that will act on it.
+      # With this step later in the job, the bump died on `brew: command not
+      # found` instead.
+      #
+      # Pinned by SHA rather than `@master`: it configures the tool this job
+      # trusts to verify a formula before that formula is published.
+      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
+
       - name: resolve the release tag
         id: release
         env:
@@ -64,8 +76,15 @@ jobs:
           # Shape-check before the value is used to compose a URL or a commit
           # message. `bump.sh` checks this too; doing it here means a malformed
           # dispatch fails on the line that read it.
-          if ! printf '%s' "${tag}" | grep -Eq '^[0-9]{2}\.[0-9]{1,2}\.[0-9]{1,2}$'; then
-              echo "::error::'${tag}' is not a YY.M.D release version"
+          #
+          # Both shapes Navigator publishes: an ordinary `YY.M.D` and a same-day
+          # `YY.M.D-hotfix.N`. The formula follows whichever release is newest
+          # rather than the newest of one shape — it holds a single version, so
+          # skipping hotfixes leaves `brew` on whatever ordinary release last
+          # succeeded, which is a stale formula nothing reports.
+          if ! printf '%s' "${tag}" |
+              grep -Eq '^[0-9]{2}\.(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(-hotfix\.(0|[1-9][0-9]*))?$'; then
+              echo "::error::'${tag}' is not a YY.M.D or YY.M.D-hotfix.N release version"
               exit 1
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
@@ -87,11 +106,6 @@ jobs:
       #
       # It does not prove the macOS half — `test.yml` covers that after the
       # push, because no Linux runner can install a Mach-O.
-      # Homebrew is NOT preinstalled on the Ubuntu 24.04 image `ubuntu-latest`
-      # now resolves to, so `brew` below is `command not found` without this.
-      # Pinned by SHA rather than `@master`: it configures the tool this job
-      # trusts to verify a formula before that formula is published.
-      - uses: Homebrew/actions/setup-homebrew@8f3d1ec8a696b3b9d9a6c3696b6c73033cab69e4
       # `setup-homebrew` registers THIS repository as the tap, so there is no
       # `brew tap` to run — issuing one against the workspace path collides with
       # the registration it already made ("remote mismatch") and fails the job.

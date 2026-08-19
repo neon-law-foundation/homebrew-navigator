@@ -30,41 +30,23 @@ on:
 permissions:
   contents: read
 
+# THE INSTALL JOBS ARE NEVER SKIPPED. They were, once: a `seeded` job read the
+# formula for the all-zero placeholder digests a freshly created tap ships with
+# and skipped every downloading job while they were there, so that a brand-new
+# repository would not be red for an expected, self-resolving reason.
+#
+# It did not self-resolve. The first bump never came — `deploy.yml` dispatched to
+# this tap for ordinary `YY.M.D` releases only, and three of those failed their
+# end-to-end gate in a row — so the placeholder formula sat here for days serving
+# a 404 to every `brew install`, with this workflow green the whole time. A gate
+# that reports success for a formula that cannot install is worse than no gate,
+# because it is read as proof.
+#
+# The formula is bumped now and `bump.sh` asserts no placeholder survives a bump,
+# so there is no state left for that exemption to describe.
 jobs:
-  # Is the formula pointing at a real release yet?
-  #
-  # A tap ships before its first bump, and until one runs, every URL names a
-  # release that may not exist and every digest is the all-zero placeholder.
-  # Downloading is meaningless in that state, so the jobs that download are
-  # skipped rather than failed — a repository that is red from its first commit
-  # for an expected, self-resolving reason teaches everyone to ignore its CI.
-  #
-  # The signal is the placeholder itself, not a date or a branch: `bump.sh`
-  # asserts no zero digest survives a bump, so a seeded formula cannot match
-  # this and a half-patched one cannot pass as seeded.
-  seeded:
-    name: is the formula seeded
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      seeded: ${{ steps.check.outputs.seeded }}
-    steps:
-      - uses: actions/checkout@v5
-      - name: look for placeholder digests
-        id: check
-        run: |
-          set -euo pipefail
-          if grep -q 'sha256 "0\{64\}"' Formula/navigator.rb; then
-              echo "seeded=false" >> "$GITHUB_OUTPUT"
-              echo "::notice::the formula still carries placeholder digests — install jobs are skipped until the first bump seeds it"
-          else
-              echo "seeded=true" >> "$GITHUB_OUTPUT"
-              echo "formula is seeded; running the full suite"
-          fi
-
   style:
     name: audit the formula
-    needs: seeded
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -119,13 +101,10 @@ jobs:
       # entitled to ignore, and a gate that fails for reasons you intend to keep
       # is a gate people learn to skip.
       - name: brew audit
-        if: needs.seeded.outputs.seeded == 'true'
         run: brew audit --online --formula neon-law-foundation/navigator/navigator
 
   prebuilt:
     name: install on ${{ matrix.label }}
-    needs: seeded
-    if: needs.seeded.outputs.seeded == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -182,10 +161,7 @@ jobs:
     # Weekly and on demand only — see the header. A pull request that changes
     # the source-building half of the formula should be checked by dispatching
     # this workflow against the branch.
-    needs: seeded
-    if: |
-      needs.seeded.outputs.seeded == 'true'
-      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:

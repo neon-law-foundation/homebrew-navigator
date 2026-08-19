@@ -5,6 +5,16 @@
 # lines by anchored regex, then asserts the result. Structure is yours to edit
 # by hand; the numbers are not.
 #
+# A sixth line, `version_scheme`, appears only once it is needed and is likewise
+# the script's. Navigator publishes ordinary `YY.M.D` releases and same-day
+# `YY.M.D-hotfix.N` prereleases, and this formula follows whichever is newest,
+# because it holds ONE version and every `brew install` resolves to it. But
+# Homebrew's comparator is not semver — it ranks `26.8.20-hotfix.4` ABOVE
+# `26.8.20` — so a bump from a hotfix to its own base version would read as a
+# downgrade and `brew upgrade` would refuse to move. `bump.sh` detects that with
+# Homebrew's own comparator and increments `version_scheme`, which outranks any
+# lower-scheme keg regardless of version. See `scripts/bump.sh`.
+#
 # Two acquisition paths, because the release publishes two prebuilt
 # architectures and no more:
 #
@@ -22,7 +32,7 @@
 class Navigator < Formula
   desc "Neon Law Navigator CLI — legal workflow, notation, and deployment tooling"
   homepage "https://github.com/neon-law-foundation/navigator"
-  version "26.8.17"
+  version "26.8.20-hotfix.4"
   # Navigator is AGPL-3.0-only. `-only` and not `-or-later`: the workspace
   # manifest declares exactly that, and a formula that widened it would offer
   # recipients a grant the Foundation did not make.
@@ -30,16 +40,16 @@ class Navigator < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.17/navigator-26.8.17-macos.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.20-hotfix.4/navigator-26.8.20-hotfix.4-macos.tar.gz"
+      sha256 "8c0eb17a3642c512bf96cafc5611e0a7693726587218e3d6cc4f2502713d2210"
     end
 
     on_intel do
       # No prebuilt x86_64 archive exists: `macos-latest` is Apple silicon, and
       # a second full release compile on the slowest runner class is not bought.
       # Compile the source tag instead.
-      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.17.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.20-hotfix.4.tar.gz"
+      sha256 "fca090a58017bc771918dd2f842672d492270e59dfc2d51776b453ee573a16b0"
 
       depends_on "rust" => :build
     end
@@ -47,14 +57,14 @@ class Navigator < Formula
 
   on_linux do
     on_intel do
-      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.17/navigator-26.8.17-linux.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.20-hotfix.4/navigator-26.8.20-hotfix.4-linux.tar.gz"
+      sha256 "184c56a3efa7d8ece1cefc76ffc047e45d5096965cbbd1e0877fc0b942e7612d"
     end
 
     on_arm do
       # Same reasoning as Intel macOS: the release publishes x86_64 Linux only.
-      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.17.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.20-hotfix.4.tar.gz"
+      sha256 "fca090a58017bc771918dd2f842672d492270e59dfc2d51776b453ee573a16b0"
 
       depends_on "rust" => :build
     end
