@@ -9,7 +9,7 @@
 # the script's. Navigator publishes ordinary `YY.M.D` releases and same-day
 # `YY.M.D-hotfix.N` prereleases, and this formula follows whichever is newest,
 # because it holds ONE version and every `brew install` resolves to it. But
-# Homebrew's comparator is not semver — it ranks `26.8.21-hotfix.12` ABOVE
+# Homebrew's comparator is not semver — it ranks `26.8.22-hotfix.22` ABOVE
 # `26.8.20` — so a bump from a hotfix to its own base version would read as a
 # downgrade and `brew upgrade` would refuse to move. `bump.sh` detects that with
 # Homebrew's own comparator and increments `version_scheme`, which outranks any
@@ -32,7 +32,7 @@
 class Navigator < Formula
   desc "Neon Law Navigator CLI — legal workflow, notation, and deployment tooling"
   homepage "https://github.com/neon-law-foundation/navigator"
-  version "26.8.21-hotfix.12"
+  version "26.8.22-hotfix.22"
   # Navigator is AGPL-3.0-only. `-only` and not `-or-later`: the workspace
   # manifest declares exactly that, and a formula that widened it would offer
   # recipients a grant the Foundation did not make.
@@ -40,16 +40,16 @@ class Navigator < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.21-hotfix.12/navigator-26.8.21-hotfix.12-macos.tar.gz"
-      sha256 "a4205f077a40ac7dec4cc7984f580a03c1d8dbaac6bce7da1b5d89e97ee428be"
+      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.22-hotfix.22/navigator-26.8.22-hotfix.22-macos.tar.gz"
+      sha256 "22c5712edeb82fc1cb62cbcd124d32a32d91bbf8efae3920bccd9d18eabfbaf9"
     end
 
     on_intel do
       # No prebuilt x86_64 archive exists: `macos-latest` is Apple silicon, and
       # a second full release compile on the slowest runner class is not bought.
       # Compile the source tag instead.
-      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.21-hotfix.12.tar.gz"
-      sha256 "c07d06a2e57d1d65de21d18de89a2f85eedcc203e9a8501d468b12934c25c75f"
+      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.22-hotfix.22.tar.gz"
+      sha256 "c91743d355fe79424021888b903592a0056a3b74fa5e1f462af9f07e3760f96c"
 
       depends_on "rust" => :build
     end
@@ -57,14 +57,14 @@ class Navigator < Formula
 
   on_linux do
     on_intel do
-      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.21-hotfix.12/navigator-26.8.21-hotfix.12-linux.tar.gz"
-      sha256 "7d463159e8e876782508585db756958f8c7a42793e6cc66489a5fcd0c4b3072f"
+      url "https://github.com/neon-law-foundation/navigator/releases/download/26.8.22-hotfix.22/navigator-26.8.22-hotfix.22-linux.tar.gz"
+      sha256 "4a3e366bda017fd3e2a83e0040c0654a3248ce478bad92e9287cfb6f7e592696"
     end
 
     on_arm do
       # Same reasoning as Intel macOS: the release publishes x86_64 Linux only.
-      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.21-hotfix.12.tar.gz"
-      sha256 "c07d06a2e57d1d65de21d18de89a2f85eedcc203e9a8501d468b12934c25c75f"
+      url "https://github.com/neon-law-foundation/navigator/archive/refs/tags/26.8.22-hotfix.22.tar.gz"
+      sha256 "c91743d355fe79424021888b903592a0056a3b74fa5e1f462af9f07e3760f96c"
 
       depends_on "rust" => :build
     end
