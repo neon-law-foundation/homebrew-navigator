@@ -132,6 +132,22 @@ jobs:
           brew install --formula neon-law-foundation/navigator/navigator
           brew test neon-law-foundation/navigator/navigator
 
+      # THIS PUSHES STRAIGHT TO `main`, and `main` is deliberately unprotected.
+      # A tap holds one mechanical file whose every change is a formula bump
+      # this job already proved by installing it, so there is nothing for a
+      # review gate to read and no second branch for the history to need: `main`
+      # is a straight line of one commit per Navigator release, each naming the
+      # tag it points the formula at. Do not add a ruleset here — a
+      # `pull_request` or `required_signatures` rule refuses this push outright
+      # (a runner's `git commit` is unsigned; only API and web commits are
+      # auto-verified), and the formula then silently stops following releases.
+      # `navigator ops github setup` applies its common review gate to any
+      # repository it is pointed at, so it must not be pointed at this one.
+      #
+      # The refspec is explicit because `actions/checkout` leaves `main` with no
+      # tracking upstream — a bare `git push` exits 128 with "The current branch
+      # main has no upstream branch" after every other step in this job has
+      # already succeeded.
       - name: commit and push
         env:
           TAG: ${{ steps.release.outputs.tag }}
@@ -145,5 +161,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Formula/navigator.rb
           git commit --message "navigator ${TAG}"
-          git push
+          git push origin HEAD:main
           echo "formula pushed at ${TAG}"
