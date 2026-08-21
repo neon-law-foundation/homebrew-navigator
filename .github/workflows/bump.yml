@@ -144,13 +144,30 @@ jobs:
       # `navigator ops github setup` applies its common review gate to any
       # repository it is pointed at, so it must not be pointed at this one.
       #
-      # The refspec is explicit because `actions/checkout` leaves `main` with no
-      # tracking upstream — a bare `git push` exits 128 with "The current branch
-      # main has no upstream branch" after every other step in this job has
-      # already succeeded.
+      # TWO THINGS THIS PUSH CANNOT INHERIT, both of which cost a failed release
+      # to learn, and both of which fail at the very end of an otherwise green
+      # job — after the formula is rewritten, installed, and tested.
+      #
+      # The REFSPEC is explicit because `actions/checkout` leaves `main` with no
+      # tracking upstream: a bare `git push` exits 128 with "The current branch
+      # main has no upstream branch".
+      #
+      # The CREDENTIAL is explicit because the checkout's persisted one does not
+      # reach this step. `actions/checkout` does store it — it sets
+      # `http.https://github.com/.extraheader` in the local config — but after
+      # `setup-homebrew` has registered this workspace as a tap, the push no
+      # longer picks it up and exits 128 with "could not read Username for
+      # 'https://github.com'". Carrying the token in the URL is independent of
+      # whichever of the two `setup-homebrew` moved, the header or the remote,
+      # and it is not written to `.git/config`, so it does not persist into a
+      # tree Homebrew reads. Actions masks the value in the log.
       - name: commit and push
         env:
           TAG: ${{ steps.release.outputs.tag }}
+          # The job's own token. `permissions: contents: write` above is the
+          # whole grant it carries, and this repository is the only thing it
+          # can reach.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           if git diff --quiet -- Formula/navigator.rb; then
@@ -161,5 +178,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Formula/navigator.rb
           git commit --message "navigator ${TAG}"
-          git push origin HEAD:main
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
           echo "formula pushed at ${TAG}"
